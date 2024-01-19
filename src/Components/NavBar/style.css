@@ -1,0 +1,28 @@
+.navbar-container {
+    display: flex;
+    position: relative;
+    width: '100%';
+    top : 0;
+    left: 0;
+    background-color: #000000;
+    color: #fff; 
+    /* padding: 10px 0;  */
+    height: 5%;
+    z-index: 1
+}
+
+.items-container {
+    max-width: 1200px; 
+    margin: 0 auto; 
+    padding: 0 20px; 
+}
+
+.navbar-container a {
+    color: #fff; 
+    text-decoration: none; 
+    margin-right: 20px; 
+}
+
+.navbar-container a:hover {
+    text-decoration: underline; 
+}
