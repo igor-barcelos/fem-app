@@ -1,12 +1,11 @@
 
 import './App.css'
-import { Scene } from './three/scene/Scene'
+import { Viewer } from './pages/viewer/Viewer'
 import { useEffect } from 'react'
 function App() {
-  const scene = new Scene() 
+  const viewer = new Viewer() 
   useEffect(() => {
-    scene.init()
-    scene.loadToolBar()
+    viewer.init()
   }, []);
   return (
     <>

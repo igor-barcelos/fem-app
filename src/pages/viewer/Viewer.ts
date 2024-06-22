@@ -2,9 +2,9 @@ import * as OBC from "@thatopen/components";
 import * as OBCF from "@thatopen/components-front";
 import * as BUI from "@thatopen/ui";
 import * as THREE from "three"
-import selection from "../../components/Toolbars/Sections/Selection";
+import drawing from "../../components/Toolbars/Drawing";
 let world : any
-export class Scene {
+export class Viewer {
   constructor() {
     
   }
@@ -15,8 +15,8 @@ export class Scene {
     const canvas = document.querySelector('canvas')
     const container = document.getElementById("root") as HTMLDivElement
     
-    if(canvas)
-      return
+    // if(canvas)
+    //   return
     const components = new OBC.Components();
     const worlds = components.get(OBC.Worlds);
     world = worlds.create<
@@ -51,19 +51,14 @@ export class Scene {
 
     const toolbar = BUI.Component.create(() => {
       return BUI.html`
-        <bim-toolbar class="options-menu">
-          ${selection(components, world)}
+        <bim-toolbar class="drawing-toolbar">
+          ${drawing(components, world)}
         </bim-toolbar>
       `
     })
 
     const app = document.getElementById('root') as HTMLElement
     app.append(toolbar);
-  }
-
-  loadToolBar()
-  {
-
   }
 }
 
