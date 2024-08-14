@@ -1,14 +1,22 @@
 
 import './App.css'
-import { Viewer } from './pages/viewer/Viewer'
-import { useEffect } from 'react'
+import Viewer from './pages/viewer'
+import { ThemeProvider, createTheme } from '@mui/material/styles';
+import CssBaseline from '@mui/material/CssBaseline';
+
+const darkTheme = createTheme({
+  palette: {
+    mode: 'dark',
+  },
+});
+
 function App() {
-  const viewer = new Viewer() 
-  useEffect(() => {
-    viewer.init()
-  }, []);
   return (
     <>
+    <ThemeProvider theme={darkTheme}>
+    <CssBaseline />
+      <Viewer/>
+    </ThemeProvider>
     </>
   )
 }

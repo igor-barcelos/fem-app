@@ -3,6 +3,7 @@
   height: 100vh;
   position: relative;
   overflow: hidden;
+  margin: 0px;
 }
 
 .logo {
@@ -41,9 +42,3 @@
   color: #888;
 }
 
-.drawing-toolbar {
-  position: absolute;
-  bottom: 0;
-  left:50%;
-  transform: translate(-50%,-50%);
-}
