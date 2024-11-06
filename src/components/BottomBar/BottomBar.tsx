@@ -1,32 +1,3 @@
-
-// import * as OBC from "@thatopen/components"
-// import * as OBF from "@thatopen/components-front"
-// import * as BUI from "@thatopen/ui"
-// import { drawTypeSignal } from "../../model/src/Signals/Modelling";
-
-// BUI.Manager.init();
-
-// export const DrawingToolBar = BUI.Component.create<BUI.PanelSection>(() => {
-
-//   const onStartLine = () => {
-//     drawTypeSignal.value = "Line"
-//   }
-
-//   const onEndLine = () => {
-    
-//   }
-
-//   return BUI.html`
-//       <bim-toolbar-section label="Drawing" icon="ph:cursor-fill">
-//         <bim-button @click=${onStartLine} label="Line" icon="tabler:line" tooltip-title="Line" tooltip-text="Line"></bim-button>
-//         <bim-button  label="Line" icon="tabler:square" tooltip-title="Surface" tooltip-text="Surface"></bim-button>
-//         <bim-button label="Circle" icon="tabler:circle" tooltip-title="Circle" tooltip-text="Line"></bim-button>
-//       </bim-toolbar-section> 
-//     `
-// });
-
-
-
 import * as React from 'react';
 import IconButton from '@mui/material/IconButton';
 import Stack, {StackProps} from '@mui/material/Stack';
@@ -38,7 +9,10 @@ import CircleOutlinedIcon from '@mui/icons-material/CircleOutlined';
 import StraightenIcon from '@mui/icons-material/Straighten';
 import SettingsIcon from '@mui/icons-material/Settings';
 import ImportExportIcon from '@mui/icons-material/ImportExport';
-import Grid from '@mui/material/Grid';
+import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+// import { loadIfcSignal } from '../../model/src/Geometry/IFC/signals';
+import { useAppContext } from '../../App';
+
 const ToolBar = styled(Stack)<StackProps>(({ theme }) => ({
   backgroundColor:'black',
   borderRadius:'10%',
@@ -52,12 +26,25 @@ const onDrawStart = (drawType : String ) => {
   
 }
 
+
+
 export default function BottomBar() {
+  const { loadingIfc } = useAppContext();
+  const uploadIfc = async () => {
+    loadingIfc.value = true;
+  }
   return (
     <Stack direction="row" spacing={2} style={{marginBottom:'1rem'}}>
       <ToolBar direction="row">
+        <Tooltip title ='IFC'>
+            <IconButton onClick={uploadIfc}>
+              <CloudUploadIcon />
+            </IconButton>
+          </Tooltip>
+      </ToolBar>
+      <ToolBar direction="row">
         <Tooltip title='Line' arrow>
-          <IconButton  >
+          <IconButton>
             <ShowChartTwoToneIcon />
           </IconButton>
         </Tooltip>
@@ -71,7 +58,6 @@ export default function BottomBar() {
             <CircleOutlinedIcon  />
           </IconButton>
         </Tooltip>
-
         <Tooltip title ='Measurements'>
           <IconButton >
             <StraightenIcon  />

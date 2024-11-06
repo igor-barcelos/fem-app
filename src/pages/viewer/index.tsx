@@ -1,18 +1,21 @@
 import { useEffect, useRef} from "react";
 import { Model } from "../../model/src/Model";
 import BottomBar from "../../components/BottomBar/BottomBar";
-
+import { useAppContext } from "../../App";
 const Viewer = () => {
 
   const containerRef = useRef<HTMLDivElement | null>(null);  
   const modelRef = useRef<Model | null>(null)
-
-  useEffect(() => { 
-    modelRef.current = new Model()
+  const state = useAppContext();
+  
+  useEffect(() => {
+    modelRef.current = new Model(state)
     return () => {
-      modelRef.current!.dispose()
+      if (modelRef.current) {
+        modelRef.current.dispose();
+      }
     };
-  }, [])
+  }, []);
 
   
   return (

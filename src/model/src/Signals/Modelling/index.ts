@@ -1,5 +1,4 @@
 import { signal } from "@preact/signals-react";
-
 export type IDrawType =
   | "Line"
   | "Rectangular"
