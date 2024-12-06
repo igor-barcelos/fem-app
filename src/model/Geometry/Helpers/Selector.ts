@@ -56,7 +56,7 @@ class Selector  {
           }  
           this.selection = intersects[ 0 ].object as THREE.Mesh;
           materialOnHover = this.selection.material as THREE.MeshBasicMaterial | THREE.MeshLambertMaterial[]
-          console.log('SELECTION', this.selection)  
+          // console.log('SELECTION', this.selection)  
 
           if(Array.isArray(materialOnHover)){
             this.originalColor = materialOnHover[0].color.getHex();
@@ -106,12 +106,31 @@ class Selector  {
       this.model.scene.children.forEach(element => this.getMeshes(element, meshesArray))
       const intersects = this.rayCaster.intersectObjects( meshesArray, false)
       
-      console.log('meshesArray', meshesArray)
-      console.log('intersects', intersects.length)
+      // console.log('meshesArray', meshesArray)
+      // console.log('intersects', intersects.length)
       if(intersects.length > 0){
         const objectOnClick = intersects[0].object as THREE.Mesh
         if(objectOnClick.type != "GridHelper"){
           console.log('object on click', objectOnClick)
+          const points = objectOnClick.geometry.attributes.instanceStart.array
+          console.log('points', points)
+          const start = new THREE.Vector3(points[0], points[1], points[2])
+          console.log('start', start)
+          const end = new THREE.Vector3(points[3], points[4], points[5])
+          console.log('end', end)
+          const directionVector = end.clone().sub(start).normalize()
+          
+          console.log('directionVector', directionVector)
+
+          const upVector = new THREE.Vector3(0, 1, 0)
+          const normalVector = directionVector.clone().cross(upVector).normalize()
+          const origin = new THREE.Vector3(0,0,0)
+
+          const distanceToOrigin = directionVector.distanceTo(upVector)
+
+          console.log('distanceToOrigin', distanceToOrigin)
+          console.log('normalVector', normalVector)
+          console.log('directionVector', directionVector)
           // objectOnClick.currentHex = selection.material.emissive.getHex();
           // const material = objectOnClick.material as THREE.MeshLambertMaterial[] || 
           // console.log('material', material)

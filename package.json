@@ -19,10 +19,14 @@
     "@thatopen/components-front": "^2.0.5",
     "@thatopen/fragments": "^2.0.5",
     "@thatopen/ui": "^2.0.4",
+    "lil-gui": "^0.20.0",
+    "mobx": "^6.13.5",
+    "mobx-react-lite": "^4.0.7",
     "openbim-components": "^1.5.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "three": "^0.160.1",
+    "three-viewport-gizmo": "^1.0.6",
     "web-ifc": "^0.0.53"
   },
   "devDependencies": {

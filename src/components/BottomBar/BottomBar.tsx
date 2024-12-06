@@ -12,6 +12,7 @@ import ImportExportIcon from '@mui/icons-material/ImportExport';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 // import { loadIfcSignal } from '../../model/src/Geometry/IFC/signals';
 import { useAppContext } from '../../App';
+import { drawTypeSignal } from '../../model/src/Signals/Modelling';
 
 const ToolBar = styled(Stack)<StackProps>(({ theme }) => ({
   backgroundColor:'black',
@@ -23,7 +24,8 @@ const ToolBar = styled(Stack)<StackProps>(({ theme }) => ({
 }));
 
 const onDrawStart = (drawType : String ) => {
-  
+  console.log('CALLING DRAW START', drawType  )
+  drawTypeSignal.value = drawType 
 }
 
 
@@ -44,7 +46,7 @@ export default function BottomBar() {
       </ToolBar>
       <ToolBar direction="row">
         <Tooltip title='Line' arrow>
-          <IconButton>
+          <IconButton onClick={() => onDrawStart('Line')}>
             <ShowChartTwoToneIcon />
           </IconButton>
         </Tooltip>

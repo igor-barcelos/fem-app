@@ -1,15 +1,15 @@
-import { useEffect, useRef} from "react";
-import { Model } from "../../model/src/Model";
-import BottomBar from "../../components/BottomBar/BottomBar";
-import { useAppContext } from "../../App";
+import { useEffect, useRef,  createContext, useContext, useState} from "react";
+import { Model } from "../../model/Model";
+import NavBar from "../../components/NavBar/NavBar";
+import { ModelContext } from "../../model/Context";
 const Viewer = () => {
-
   const containerRef = useRef<HTMLDivElement | null>(null);  
   const modelRef = useRef<Model | null>(null)
-  const state = useAppContext();
-  
+  const [model, setModel] = useState<Model | null>(null)
+
   useEffect(() => {
-    modelRef.current = new Model(state)
+    modelRef.current = new Model()
+    setModel(modelRef.current)
     return () => {
       if (modelRef.current) {
         modelRef.current.dispose();
@@ -20,9 +20,12 @@ const Viewer = () => {
   
   return (
     <div id="app-container" ref={containerRef} style={{position:'relative', width:'100vw', height:'100vh', overflow: 'hidden',  margin: '0px'}} >
-      <div style={{position:'absolute', bottom : '0px', left: '50%',  transform: 'translateX(-50%)'}}>
+      <ModelContext.Provider value={model}>
+        <NavBar/>
+      </ModelContext.Provider>
+      {/* <div style={{position:'absolute', bottom : '0px', left: '50%',  transform: 'translateX(-50%)'}}>
         <BottomBar/> 
-      </div>
+      </div> */}
     </div>
   );
 };
