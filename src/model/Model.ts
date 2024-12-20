@@ -34,7 +34,7 @@ export class Model {
   // private ifcFileHandler : IFCFileHandler
   worldPlane : THREE.Plane;
   snapManager : SnapManager
-  cube :  THREE.Mesh
+  // cube :  THREE.Mesh
   selector : Selector
   gizmo : ViewportGizmo
   drawTool : DrawTool
@@ -82,7 +82,6 @@ export class Model {
     this.gizmo = new ViewportGizmo(this.camera, this.renderer, {  placement: "bottom-right",});
     this.gizmo.attachControls(this.cameraControls);
     // this.cameraControls.enableRotate = false
-
   }
 
   init()
@@ -96,51 +95,16 @@ export class Model {
     const size = 50;
     const divisions = 50;
     const gridHelper = new THREE.GridHelper( size, divisions, new THREE.Color(0xe0e0e0), new THREE.Color(0xe0e0e0),  );
-
+    gridHelper.position.y = -0.005
     const gridFolder = gui.addFolder('Grid');
     gridFolder.add(gridHelper, 'visible').name('Visible')
 
     gridFolder.open();
     this.scene.add( gridHelper );
     this.addLight()
-    this.createTempLines()
-
-    const points  = [-5,0,3, 5,0,3]
-    const start = new THREE.Vector3(points[0], points[1], points[2])
-    console.log('start', start)
-    const end = new THREE.Vector3(points[3], points[4], points[5])
-    console.log('end', end)
-    const directionVector = end.clone().sub(start)
-    
-    console.log('directionVector', directionVector)
-
-    const upVector = new THREE.Vector3(0, 1, 0)
-    const normalVector = directionVector.clone().cross(upVector).normalize()
-    const origin = new THREE.Vector3(0,0,0)
-
-    const originToStart = start.clone().sub(origin)
-    const angle = originToStart.angleTo(directionVector)
-    console.log('angle', angle)
-    const distance = originToStart.length() * Math.sin(angle)
-    console.log('distance', distance)
-
-    const projectionOnDirectionVector = directionVector.dot(originToStart) / (directionVector.length() ** 2)
-    console.log('projectionOnDirectionVector', projectionOnDirectionVector)
-    const AQ = Math.sqrt(originToStart.length() ** 2 - distance ** 2)
-    console.log('AQ', AQ)
-    const scale = AQ / directionVector.length()
-    console.log('scale', scale)
-    const alpha = Math.PI / 2 - angle
-    console.log('alpha', alpha)
-    const deltaX = Math.cos(alpha) * AQ
-    const deltaZ = Math.sin(alpha) * AQ
-    console.log('deltaX', deltaX)
-    console.log('deltaZ', deltaZ)
-    const intersectionPoint = new THREE.Vector3(start.x + deltaX, start.y, start.z + deltaZ)
-    console.log('intersectionPoint', intersectionPoint)
-    const distanceToOrigin = AQ * Math.sin(angle)
-    console.log('distanceToOrigin', distanceToOrigin)
-
+    // this.addCube()
+    this.createBeam()
+    // this.createTempLines()
   }
 
   private onResize = () => 
@@ -191,6 +155,17 @@ export class Model {
     const directionalLight = new THREE.DirectionalLight(0xF9F9F9, 1)
     directionalLight.position.set(10, 50, 10)
     this.scene.add(ambientLight, directionalLight)
+
+    // Add some lights
+    // const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.0);
+    // this.scene.add(hemiLight);
+
+    // const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    // dirLight.position.set(5, 10, 5);
+    // this.scene.add(dirLight);
+
+    // const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+    // this.scene.add(ambientLight);
   } 
   public removeListeners = () => { 
     window.removeEventListener('resize', this.onResize)
@@ -205,7 +180,7 @@ export class Model {
     this.pointerCoords.y = mouseLoc.y;
 
     if(this.snapManager.enabled){
-      // this.snapManager.updatePosition()
+      this.snapManager.updatePosition()
     }
   }
 
@@ -226,135 +201,125 @@ export class Model {
     }
   }
 
-  createTempLines = () => {
-    const group = new THREE.Group();
-   
-    const positions = [
-      -5, 0, 0,  // Point 1: (x=−5, y=0, z=−5)
-      5, 0, 0, 
-  ];
-    const lineGeometry = new LineGeometry();
-    lineGeometry.setPositions(positions);
-    const line = new Line2(lineGeometry, new LineMaterial({ 
-      color: 0x1976d2,
-      linewidth: 0.002,
-      dashed: true,
-      dashSize: 0.2,
-      gapSize: 0.2
-     }));
-    line.computeLineDistances();
+  createBeam(){
 
-    const circleShape = new THREE.Shape();
-    circleShape.absarc(0, 0, 0.3, 0, Math.PI * 2, false);
-    const holePath = new THREE.Path();
-    holePath.absarc(0, 0, 0.28, 0, Math.PI * 2, true);
-    circleShape.holes.push(holePath);
-
-    const extrudeSettings = {depth: 0.,bevelEnabled: false};
-
-    const circleGeometry = new THREE.ExtrudeGeometry(circleShape, extrudeSettings);
-    const circleMaterial = new THREE.MeshBasicMaterial({ color: 0x1976d2 });
-
+    const beamLength = 5.0;   // length along Z-axis
+    const beamHeight = 0.3;   // along Y-axis
+    const beamWidth  = 0.2;   // along X-axis
     
-    const circle1 = new THREE.Mesh(circleGeometry, circleMaterial);
-    const circle2 = new THREE.Mesh(circleGeometry, circleMaterial);
+    // Number of segments to allow deformation
+    const lengthSegments = 50;
     
-    // Position circles at line endpoints
-    circle1.position.set(-5, 0, 0);
-    circle2.position.set(5, 0, 0);
+    // Create the beam geometry
+    // BoxBufferGeometry(width, height, depth, widthSegments, heightSegments, depthSegments)
+    // We'll say: width = beamWidth (X), height = beamHeight (Y), depth = beamLength (Z)
+    // And we subdivide along the Z-axis (depthSegments) to get a smooth deformation.
+    const beamGeometry = new THREE.BoxGeometry(
+      beamWidth,
+      beamHeight,
+      beamLength,
+      1, // widthSegments
+      1, // heightSegments
+      lengthSegments // depthSegments
+    );
     
-    // Rotate circles to face up (lie in XZ plane)
-    circle1.rotation.x = -Math.PI / 2;
-    circle2.rotation.x = -Math.PI / 2;
-
-    const createTextSprite = (text: string, position: THREE.Vector3) => {
-      const canvas = document.createElement('canvas');
-      const context = canvas.getContext('2d');
-      canvas.width = 64;
-      canvas.height = 64;
-      if (context) {
-          context.strokeStyle = '#000000';
-          context.font = '32px Arial';
-          context.textAlign = 'center';
-          context.textBaseline = 'middle';
-          context.fillText(text, 32, 32);
-      }
-      const texture = new THREE.CanvasTexture(canvas);
-      const textMaterial = new THREE.SpriteMaterial({ map: texture });
-      const sprite = new THREE.Sprite(textMaterial);
-      sprite.position.copy(position); // Place text exactly at the circle center
-      sprite.scale.set(0.5, 0.5, 1); // Adjust size to match circle scale
-      return sprite;
-  };
-
-
-  
-  const textSprite1 = createTextSprite('A', circle1.position);
-  const textSprite2 = createTextSprite('B', circle2.position);
-
-
-    group.add(line, circle1, circle2, textSprite1, textSprite2);
-  
-    // Add group to scene
-
-    const lineFolder = gui.addFolder('Line Controls');
-    const lineParams = { 
-      color: '01976d2', 
-      linewidth: 0.005,
-      dashed: false,    
-      dashSize: 0.2,    
-      gapSize: 0.5      
-    }; 
-
-    
-    lineFolder.addColor(lineParams, 'color').onChange((value: THREE.Color) => {
-        // Update line material color
-        if (line.material instanceof LineMaterial) {
-            line.material.color.set(value);
-            line.material.needsUpdate = true; // Ensure update
-        }
+    // Create a material that supports vertex colors for the heat map
+    const beamMaterial = new THREE.MeshStandardMaterial({ 
+      // vertexColors: true,
+      roughness: 0.9,
+      metalness: 0.0
     });
-
-    lineFolder.add(lineParams, 'linewidth', 0.001, 0.05).onChange((value: number) => {
-      if (line.material instanceof LineMaterial) {
-          line.material.linewidth = value;
-          line.material.needsUpdate = true;
-      }
-  });
-
-  // Add dashed toggle
-  lineFolder.add(lineParams, 'dashed').onChange((value: boolean) => {
-      if (line.material instanceof LineMaterial) {
-          line.material.dashed = value;
-          line.material.needsUpdate = true;
-      }
-  });
-
-  // Add dash size control
-  lineFolder.add(lineParams, 'dashSize', 0.1, 1).onChange((value: number) => {
-      if (line.material instanceof LineMaterial && lineParams.dashed) {
-          line.material.dashSize = value;
-          line.material.needsUpdate = true;
-      }
-  });
-
-  // Add gap size control
-  lineFolder.add(lineParams, 'gapSize', 0.1, 1).onChange((value: number) => {
-      if (line.material instanceof LineMaterial && lineParams.dashed) {
-          line.material.gapSize = value;
-          line.material.needsUpdate = true;
-      }
-  });
-
     
-
-    lineFolder.open();
-
-    this.scene.add(group);
-    return line;
+    const beamMesh = new THREE.Mesh(beamGeometry, beamMaterial);
+    this.scene.add(beamMesh);
+    
+    // Position the beam so that it goes from z=0 to z=5, with the midpoint at 2.5
+    // By default the beam is centered at z=0 (from -2.5 to +2.5).
+    // Let's shift it so start is at 0 and end is at 5.
+    {
+      const positionAttr = beamGeometry.attributes.position;
+      for (let i = 0; i < positionAttr.count; i++) {
+        const z = positionAttr.getZ(i);
+        positionAttr.setZ(i, z + beamLength / 2); // shift from [-2.5,2.5] to [0,5]
+      }
+      positionAttr.needsUpdate = true;
+    }
+    
+    // --------------------------------------
+    // Compute and Apply Deformation
+    // --------------------------------------
+    // We'll use a simple parabolic deflection curve. For example, for a simply supported
+    // beam with uniform load, deflection can be approximated by a parabolic function:
+    // w(z) = deltaMax * (4*(z/L)*(1 - z/L)), where L=length, z in [0,L]
+    
+    // Maximum displacement at midspan:
+    const deltaMax = 0.5; // arbitrary value, 5 cm for demonstration
+    const L = beamLength;
+    
+    const positionAttr = beamGeometry.attributes.position;
+    const vertexCount = positionAttr.count;
+    
+    // Array to store displacement at each vertex
+    const displacements = new Float32Array(vertexCount);
+    
+    // Calculate deflection and modify vertices
+    for (let i = 0; i < vertexCount; i++) {
+      const x = positionAttr.getX(i);
+      const y = positionAttr.getY(i);
+      const z = positionAttr.getZ(i); // now z is in [0,L]
+    
+      // Compute deflection: a parabola peaking at midspan z = L/2
+      // w(z) = deltaMax * 4*(z/L)*(1 - z/L)
+      const zRatio = z / L;
+      const w = deltaMax * 4 * zRatio * (1 - zRatio);
+    
+      // Move vertex down by w
+      positionAttr.setXYZ(i, x, y - w, z);
+    
+      // Store displacement (absolute value)
+      displacements[i] = w;
+    }
+    
+    // Update geometry after deformation
+    positionAttr.needsUpdate = true;
+    beamGeometry.computeVertexNormals();
+    
+    // --------------------------------------
+    // Create Heat Map Based on Displacements
+    // --------------------------------------
+    const colors = new Float32Array(vertexCount * 3);
+    beamGeometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+    
+    // Normalize displacement values for [0,1] range
+    const minDisplacement = Math.min(...displacements);
+    const maxDisplacement = Math.max(...displacements);
+    const displacementRange = maxDisplacement - minDisplacement || 1;
+    
+    for (let i = 0; i < vertexCount; i++) {
+      const disp = displacements[i];
+      const t = (disp - minDisplacement) / displacementRange; // normalized [0,1]
+    
+      // Simple color map: blue at low displacement, red at high displacement
+      // t=0 -> blue (0,0,1)
+      // t=1 -> red (1,0,0)
+      const r = t;
+      const g = 0.0;
+      const b = 1.0 - t;
+      
+      colors[i * 3 + 0] = r;
+      colors[i * 3 + 1] = g;
+      colors[i * 3 + 2] = b;
+    }
+    beamGeometry.attributes.color.needsUpdate = true;
 
   }
 
+  addCube(){
+    const geometry = new THREE.BoxGeometry(1, 1, 1);
+    const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+    const cube = new THREE.Mesh(geometry, material);
+    this.scene.add(cube);
+  }
 }
 
 export default Model

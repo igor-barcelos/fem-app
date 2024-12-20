@@ -10,7 +10,7 @@ class Selector  {
   selection : THREE.Mesh | null  
   originalColor : number
   colorOnSelection : number
-  colorOnHover : number
+  // colorOnHover : number
   set setupEvent(enabled: boolean) {
     if (enabled) {
       this.onHover = this.onHover.bind(this);
@@ -79,21 +79,6 @@ class Selector  {
           // (this.selection.material as THREE.MeshBasicMaterial).color.setHex( this.originalColor );
         this.selection = null;
       }
-      // if(intersects.length > 0){
-      //   if(this.currentSelection != intersects[0].object){
-      //     if(intersects[0].object.type  != 'GridHelper'){
-      //     this.currentSelection = intersects[0].object as THREE.Mesh
-      //     const material = this.currentSelection.material as THREE.MeshBasicMaterial
-      //     material.color.setHex( 0xff0000 );
-      //     }
-      //   }
-
-      //   const objectOnHover = intersects[0].object as THREE.Mesh
-      //   if(objectOnHover.type != "GridHelper"){
-      //     console.log('object on hover', objectOnHover)
-      //   }
-
-      // } 
     }
   }
 
@@ -112,25 +97,6 @@ class Selector  {
         const objectOnClick = intersects[0].object as THREE.Mesh
         if(objectOnClick.type != "GridHelper"){
           console.log('object on click', objectOnClick)
-          const points = objectOnClick.geometry.attributes.instanceStart.array
-          console.log('points', points)
-          const start = new THREE.Vector3(points[0], points[1], points[2])
-          console.log('start', start)
-          const end = new THREE.Vector3(points[3], points[4], points[5])
-          console.log('end', end)
-          const directionVector = end.clone().sub(start).normalize()
-          
-          console.log('directionVector', directionVector)
-
-          const upVector = new THREE.Vector3(0, 1, 0)
-          const normalVector = directionVector.clone().cross(upVector).normalize()
-          const origin = new THREE.Vector3(0,0,0)
-
-          const distanceToOrigin = directionVector.distanceTo(upVector)
-
-          console.log('distanceToOrigin', distanceToOrigin)
-          console.log('normalVector', normalVector)
-          console.log('directionVector', directionVector)
           // objectOnClick.currentHex = selection.material.emissive.getHex();
           // const material = objectOnClick.material as THREE.MeshLambertMaterial[] || 
           // console.log('material', material)

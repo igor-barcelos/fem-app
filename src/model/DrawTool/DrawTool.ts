@@ -1,19 +1,22 @@
 import { Model } from '../Model';
-import { Line } from './Line';
+import { Line } from './Tools/Line';
+import { Tool } from './types';
 
 export default class DrawTool{
   enabled = true;
-  toolState: number;
+  state: number;
   model : Model
+  activeTool : Tool | null = null
   constructor(model : Model) { 
     this.model = model
-    this.toolState = 1; //state from 0 to 3
+    this.state = 0; //state from 0 to 3
     this.setupEvents(true)
   }
 
   private onKeyDown = (e: KeyboardEvent) => {
     if (e.key === "Escape"){
       console.log('turnning off draw tool')
+      this.stop()
     }
   };
 
@@ -26,19 +29,21 @@ export default class DrawTool{
 	}
 
     //START METHOD
-  start() {
-    this.toolState = 1;
+  start(type: String) {
+    this.state = 1;
     const line = new Line(this.model)
-    line.start()
+    this.activeTool = line
+    this.activeTool.start(type)
   }
   
   protected _resetLoop() {
-    this.toolState = 1;
+    this.state = 1;
 
   }
 
   stop() {
-    this.toolState = 0
+    this.state = 0
+    this.activeTool?.dispose()
   }
 }
 

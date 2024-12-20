@@ -5,7 +5,7 @@ class SnapManager {
   snap : THREE.Mesh | null
   model : Model
   enabled : boolean
-
+  snappedCoords : THREE.Vector3 | null
   set setupEvent(enabled: boolean) {
     if (enabled) {
       this.addToScene()
@@ -18,6 +18,7 @@ class SnapManager {
     this.enabled = true
     this.snap = null
     this.setupEvent = true
+    this.snappedCoords = null
   }
 
   addToScene() {
@@ -72,6 +73,7 @@ class SnapManager {
   {
     let snapPosition = this.snapToGrid(this.model.pointerCoords, 1)
     this.snap!.position.set( snapPosition.x,  snapPosition.y , snapPosition.z)
+    this.snappedCoords = snapPosition
   }
   screenToWorld(screenCoords : THREE.Vector2, camera : THREE.PerspectiveCamera | THREE.OrthographicCamera) {
     const worldPosition = new THREE.Vector3()

@@ -1,31 +1,34 @@
-import { Model } from '../Model';
+import { Model } from '../../Model';
 import * as THREE from 'three';
-import { ToolsId, styles } from './types/types';
+import { ToolsId, styles, Tool } from '../types';
 import { LineGeometry } from 'three/examples/jsm/lines/LineGeometry.js';
 import { Line2 } from 'three/examples/jsm/lines/Line2.js';
 import { LineMaterial } from 'three/examples/jsm/lines/LineMaterial.js';
-export class Line  {
+import Beam from '../../Elements/Beam/Beam';
+
+// type LineType = 'Axis' | 'Beam' | 'Column';
+
+export class Line implements Tool {
   lineMode: number;
   lineSegments: number;
   currentTempLine : THREE.Line;
   model : Model 
   currentPointerCoord : THREE.Vector3;
   onOrthoMode : boolean;
-  type : ToolsId;
-  constructor(model : Model, ) 
+  type : String;
+  constructor(model : Model) 
   {
     this.model = model
-    this.lineMode = 0; //0: 2-pt line, 1: polyline
+    this.lineMode = 0; //0: 2-pt line, 1: polyline //3: Axes
     this.lineSegments = 1;
     this.currentTempLine = new THREE.Line()
     this.currentPointerCoord = new THREE.Vector3();
     this.onOrthoMode = true;
-    this.type = ToolsId.AXES;
+    this.type = 'Beam';
   }
 
-
-  start = () => {
-    // super.start(camera, plane);
+  start = (type: String) => {
+    this.type = type
     this.model.canvas.addEventListener('mousemove', this._onMouseMove);
     this.model.canvas.addEventListener('click', this._onDrawClick);
     window.addEventListener('keydown', this._onKey);
@@ -34,26 +37,29 @@ export class Line  {
   private _onMouseMove = (e: MouseEvent) => {
     const mouseLoc = this.getMouseLocation(e,this.model.canvas, this.model.worldPlane, this.model.camera);
     this.currentPointerCoord = mouseLoc;
-    if (this.model.drawTool.toolState === 1) {
+    if (this.model.drawTool.state === 1) {
       this.currentPointerCoord = mouseLoc;
     }
 
-    if (this.model.drawTool.toolState === 2 ||  this.model.drawTool.toolState === 3) {
+    if (this.model.drawTool.state === 2 ||  this.model.drawTool.state === 3) {
       this.updTempLine(this.currentPointerCoord)
-
     }
   }
 
   private _onDrawClick = () => {
     //ON FIRST CLICK
-    if (this.model.drawTool.toolState === 1) {
-    const tempLinePoints =  Array(2).fill(this.currentPointerCoord); 
-    this.initTempLine(tempLinePoints)
-    this.model.drawTool.toolState = 2;
+    if (this.model.drawTool.state === 1) {
+      let tempPointerCoord = this.currentPointerCoord
+      if(this.model.snapManager.enabled)
+      {
+        tempPointerCoord = this.model.snapManager.snappedCoords!
+      }      
+      const   tempLinePoints =  Array(2).fill(tempPointerCoord); 
+      this.initTempLine(tempLinePoints)
+      this.model.drawTool.state = 2;
     }
-    else if (this.model.drawTool.toolState === 2) {
-      this.createLine(this.model.drawTool.toolState)
-      this.model.drawTool.toolState = 1
+    else if (this.model.drawTool.state === 2) {
+      this.createLine(this.model.drawTool.state)
       const currentTempLinePoints = this.currentTempLine.geometry.attributes.position.array;
       const lastPoint = new THREE.Vector3
       (
@@ -63,19 +69,19 @@ export class Line  {
       )
       
       switch(this.type) { 
-        case ToolsId.AXES:
-          this.model.drawTool.toolState = 1 
+        case 'Axis':
+          this.model.drawTool.state = 1 
           break;
         default:
           const tempLinePoints = Array(2).fill(lastPoint);  
           this.initTempLine(tempLinePoints) 
-          this.model.drawTool.toolState = 3
+          this.model.drawTool.state = 3
           break;
       }
     }
-    else if(this.model.drawTool.toolState === 3)
+    else if(this.model.drawTool.state === 3)
     {
-      this.createLine(this.model.drawTool.toolState)
+      this.createLine(this.model.drawTool.state)
       
       const currentTempLinePoints = this.currentTempLine.geometry.attributes.position.array;
       const lastPoint = new THREE.Vector3
@@ -93,21 +99,21 @@ export class Line  {
     if (event.key === 'Escape') {
       this.model.drawTool.stop()
       this.removeTempLine()
+      this.dispose()
     }
   };
   
 
   initTempLine = (points: Array<THREE.Vector3>) => {
 		const geometry = new THREE.BufferGeometry().setFromPoints(points)
-    const material = new THREE.LineDashedMaterial( {
+    const material = new THREE.LineBasicMaterial( {
       color: new THREE.Color( 0x000000 ),
-      scale: 1,
-      dashSize: 0.5,
-      gapSize: 0.05,
+      // dashSize: 0.5,
+      // gapSize: 0.05,
     });
     
     const line = new THREE.Line( geometry, material)
-  	line.computeLineDistances();
+  	// line.computeLineDistances();
 		this.model.scene.add(line)
     this.currentTempLine = line
     // this.tagsManager.init(this.currentTempLine)
@@ -117,6 +123,12 @@ export class Line  {
 
   updTempLine(pointerCoords: THREE.Vector3)
   {
+    
+    if(this.model.snapManager.enabled)
+    {
+      const snappedCoords = this.model.snapManager.snappedCoords!
+      pointerCoords = snappedCoords
+    }
     const linePoints = this.currentTempLine.geometry.attributes.position.array
     const xVector = new THREE.Vector3(1, 0, 0)
     const zVector = new THREE.Vector3(0, 0, 1)
@@ -156,7 +168,7 @@ export class Line  {
       linePoints[5] =  pointerCoords.z; 
     }
     
-    this.currentTempLine.computeLineDistances();
+    // this.currentTempLine.computeLineDistances();
     this.currentTempLine.geometry.attributes.position.needsUpdate = true;
     
   }
@@ -173,16 +185,17 @@ export class Line  {
     const points = this.currentTempLine.geometry.attributes.position.array as Float32Array;
     const geometry = new LineGeometry();
     geometry.setPositions(points);
+    const type = this.type as keyof typeof styles
     const style =
     {
-      color : styles[this.type].color,
-      dashSize : styles[this.type].dashSize,
-      gapSize : styles[this.type].gapSize,
-      linewidth : styles[this.type].lineWidth,
+      color : styles[type].color,
+      dashSize : styles[type].dashSize,
+      gapSize : styles[type].gapSize,
+      linewidth : styles[type].lineWidth,
     }
     const material = new LineMaterial(style);
     const line = new Line2(geometry,material);
-    line.computeLineDistances();
+    // line.computeLineDistances();
     // const lineLength = getLineLength(line)
     // const meanPoint = getLineMeanPoint(line)
 
@@ -199,8 +212,19 @@ export class Line  {
     // const xAxis = new THREE.Vector3(1, 0, 0)
     // const yAxis = new THREE.Vector3(0, 1, 0);
     // const zAxis = new THREE.Vector3(0, 0, 1);
-   
-    this.model.scene.add(line)
+    switch(this.type) 
+    {
+      case 'Axis':
+        this.model.axes.draw(points)
+        break;
+      case 'Beam':
+        const beam = new Beam(this.model)
+        beam.create(points)
+        break;
+      default:
+        this.model.scene.add(line)
+        break;
+    }
     // this.model.scene.add( cube );
     // cube.setRotationFromAxisAngle(zAxis, Math.PI - rotation.y )
     // this.sceneController.pickableObjects.push()
@@ -247,7 +271,14 @@ export class Line  {
     this.onOrthoMode = false;
   }
 
-  setType = (type: ToolsId) => {
+  setType = (type: String) => {
     this.type = type
+  }
+
+  dispose = () => {
+    this.removeTempLine()
+    this.model.canvas.removeEventListener('mousemove', this._onMouseMove);
+    this.model.canvas.removeEventListener('click', this._onDrawClick);
+    window.removeEventListener('keydown', this._onKey);
   }
 }

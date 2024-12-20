@@ -3,8 +3,8 @@ import { Model } from "../../Model"
 import * as THREE from "three"
 import { Line2 } from "three/examples/jsm/lines/Line2.js"
 import { LineMaterial } from "three/examples/jsm/lines/LineMaterial.js"
-import { Line } from "../../DrawTool/Line"
-import { ToolsId } from "../../DrawTool/types/types"
+import { Line } from "../../DrawTool/Tools/Line"
+import { ToolsId } from "../../DrawTool/types"
 
 class Axes {
   model: Model
@@ -13,23 +13,17 @@ class Axes {
   }
   
   startDrawMode = () => {
-    this.model.camera.position.set(0,5,0)
     this.model.cameraControls.enableRotate = false
-    const line = new Line(this.model)
-    line.setType(ToolsId.AXES);
-    line.start();
+    this.model.drawTool.start('Axis')
+    // const line = new Line(this.model)
+    // line.setType(ToolsId.AXES);
+    // line.start();
   }
-  drawAxes = () => {
-
-
+  draw = (points : Float32Array) => {
     const group = new THREE.Group();
    
-    const positions = [
-      -5, 0, 0,  // Point 1: (x=−5, y=0, z=−5)
-      5, 0, 0, 
-  ];
     const lineGeometry = new LineGeometry();
-    lineGeometry.setPositions(positions);
+    lineGeometry.setPositions(points);
     const line = new Line2(lineGeometry, new LineMaterial({ 
       color: 0x000000,
       linewidth: 0.005,
@@ -37,7 +31,7 @@ class Axes {
       // dashSize: 0.2,
       // gapSize: 0.5
      }));
-    line.computeLineDistances();
+    // line.computeLineDistances();
 
     const circleShape = new THREE.Shape();
     circleShape.absarc(0, 0, 0.3, 0, Math.PI * 2, false);
@@ -55,8 +49,8 @@ class Axes {
     const circle2 = new THREE.Mesh(circleGeometry, circleMaterial);
     
     // Position circles at line endpoints
-    circle1.position.set(-5, 0, 0);
-    circle2.position.set(5, 0, 0);
+    circle1.position.set(points[0], points[1], points[2]);
+    circle2.position.set(points[3], points[4], points[5]);
     
     // Rotate circles to face up (lie in XZ plane)
     circle1.rotation.x = -Math.PI / 2;
@@ -80,7 +74,7 @@ class Axes {
       sprite.position.copy(position); // Place text exactly at the circle center
       sprite.scale.set(0.5, 0.5, 1); // Adjust size to match circle scale
       return sprite;
-  };
+    };
 
 
   

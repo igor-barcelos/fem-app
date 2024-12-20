@@ -18,7 +18,8 @@ import {
   Timeline as LineIcon,
   MultilineChart as AxesIcon,
   Build as ToolsIcon,
-  Help as HelpIcon
+  Help as HelpIcon,
+  Merge as MergeIcon
 } from '@mui/icons-material';
 
 import { useModel } from '../../model/Context';
@@ -30,9 +31,12 @@ const NavBar = () => {
   const [selectedTool, setSelectedTool] = useState<string>('');
 
   const handleToolClick = (toolName: string) => {
-    console.log('tool clicked  ' , toolName)
     setSelectedTool(toolName)
-    if (toolName === 'axes') {
+    if(model!.drawTool.state != 0){
+      model!.drawTool.stop()
+      return
+    }
+    else if(toolName === 'axes') {
       model!.axes.startDrawMode()
     }
   };
@@ -108,11 +112,11 @@ const NavBar = () => {
             <IconButton sx={{ color: 'black' }} onClick={() => handleToolClick('cursor')}>
               <CursorIcon />
             </IconButton>
-            <IconButton sx={{ color: 'black' }} onClick={() => handleToolClick('line')}>
+            {/* <IconButton sx={{ color: 'black' }} onClick={() => handleToolClick('line')}>
               <LineIcon />
-            </IconButton>
+            </IconButton> */}
             <IconButton sx={{ color: 'black' }} onClick={() => handleToolClick('axes')}>
-              <AxesIcon />
+              <MergeIcon />
             </IconButton>
             <IconButton 
               sx={{ color: 'black' }}
