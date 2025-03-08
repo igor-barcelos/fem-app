@@ -1,21 +1,16 @@
 import * as THREE from "three";
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
-import { SnapManager } from "./SnapManager";
-// import IFCFileHandler from "./Geometry/IFC/IFCFileHandler";
+import { Snapper } from "./Geometry/Helpers/Snapper";
 import Selector from "./Geometry/Helpers/Selector";
-import GUI from 'lil-gui'
 import { ViewportGizmo } from "three-viewport-gizmo";
 import DrawTool from "./DrawTool/DrawTool";
-import { Line2 } from "three/addons/lines/Line2.js";
-import { LineGeometry } from "three/addons/lines/LineGeometry.js";
-import { LineBasicMaterial } from "three";
-import { LineMaterial } from "three/addons/lines/LineMaterial.js";
 import Axes from "./Geometry/Helpers/Axes";
-const gui = new GUI({
-  width: 300,
-  title: 'Nice debug UI',
-  closeFolders: false,
-})
+import Node from "./Elements/Node/Node";
+import Beam from "./Elements/Beam/Beam";
+import { Camera } from "./Camera";
+import GridHelper from "./Geometry/Helpers/GridHelper";
+import Light from "./Light/Light"
+import Column from "./Elements/Column/Column";
+import Levels from "./Geometry/Levels/Levels";
 
 export type PointerCoords = {
   x: number;
@@ -23,27 +18,36 @@ export type PointerCoords = {
   z: number;
 };
 
+export type Level = {
+  value: number;
+  label: string;
+}
+
 export class Model {
   enabled = true 
   public scene = new THREE.Scene()
-  public camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
+  public camera : Camera
   public renderer =  new THREE.WebGLRenderer();
-  public cameraControls = new OrbitControls(this.camera, this.renderer.domElement)
   public container !: HTMLDivElement
   pointerCoords: THREE.Vector3;  
-  // private ifcFileHandler : IFCFileHandler
   worldPlane : THREE.Plane;
-  snapManager : SnapManager
-  // cube :  THREE.Mesh
+  snapper : Snapper
   selector : Selector
   gizmo : ViewportGizmo
   drawTool : DrawTool
   canvas : HTMLCanvasElement
   axes : Axes
+  nodes : Node[]
+  beams : Beam[]
+  columns : Column[]
+  gridHelper : GridHelper
+  layer : number
+  light : Light
+  levels : Levels
   set setupEvent(enabled: boolean) {
     if (enabled) {
-
       this.onResize = this.onResize.bind(this);
+
       this.updatePointerCoords = this.updatePointerCoords.bind(this);
 
       window.addEventListener("resize", this.onResize);
@@ -54,34 +58,45 @@ export class Model {
   }
 
   constructor() {
+    this.camera = new Camera(this)
+    this.gridHelper = new GridHelper(this.scene)
+    this.light = new Light(this.scene)
     this.update()
     this.init()
     this.setupEvent = true;
     this.pointerCoords =  new THREE.Vector3(0,0,0,)
     this.worldPlane =  new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
-    this.snapManager = new SnapManager(this)
+    this.snapper = new Snapper(this)
     this.selector = new Selector(this); 
     this.drawTool = new DrawTool(this)
     this.axes = new Axes(this)  
     this.canvas = document.querySelector('canvas') as HTMLCanvasElement
-    // const geometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
-    // const material = new THREE.MeshStandardMaterial({
-    //   color: 0xc3c3c3,
-    //   wireframe: false,
-    // });
+    this.levels = new Levels(this)
+    this.gizmo = new ViewportGizmo(this.camera.cam, this.renderer, {  placement: "bottom-right",});
+    this.gizmo.attachControls(this.camera.controls);
+    this.nodes = []
+    this.beams = []
+    this.columns = []
+    this.layer = 0
 
-    // this.cube = new THREE.Mesh(geometry, material);
-    // // this.scene.add(this.cube)
-    // gui.add(this.cube.position, 'x').min(-10).max(10).step(0.01).name('Cube X')
-    const guiElement = document.querySelector('.lil-gui') as HTMLElement
-    if(guiElement){
-      guiElement.style.position = 'absolute'
-      guiElement.style.top = '80px'
-      guiElement.style.left = '10px'
-    }
-    this.gizmo = new ViewportGizmo(this.camera, this.renderer, {  placement: "bottom-right",});
-    this.gizmo.attachControls(this.cameraControls);
-    // this.cameraControls.enableRotate = false
+    const canvas = document.createElement('canvas');
+    canvas.width = 32;
+    canvas.height = 512;
+    const context = canvas.getContext('2d');
+
+    // 2. Create a vertical gradient from white at the bottom to blue at the top
+    const gradient = context!.createLinearGradient(0, 0, 0, canvas.height);
+    gradient.addColorStop(0, '#87CEEB'); // Sky blue at the top
+    gradient.addColorStop(1, '#ffffff'); // White at the bottom
+
+    // 3. Fill the canvas with the gradient
+    context!.fillStyle = gradient;
+    context!.fillRect(0, 0, canvas.width, canvas.height);
+
+    // 4. Create a texture from the canvas
+    const texture = new THREE.CanvasTexture(canvas);
+    this.scene.background = texture;
+    this.axes.setMockAxes()
   }
 
   init()
@@ -89,38 +104,25 @@ export class Model {
     this.container = document.getElementById('app-container') as HTMLDivElement
     this.renderer.setSize( window.innerWidth, window.innerHeight );
     this.container?.appendChild( this.renderer.domElement )
-    this.camera.position.y = 5
     this.scene.background = new THREE.Color("#FFFFFF")
-    this.cameraControls.enableDamping = true
-    const size = 50;
-    const divisions = 50;
-    const gridHelper = new THREE.GridHelper( size, divisions, new THREE.Color(0xe0e0e0), new THREE.Color(0xe0e0e0),  );
-    gridHelper.position.y = -0.005
-    const gridFolder = gui.addFolder('Grid');
-    gridFolder.add(gridHelper, 'visible').name('Visible')
-
-    gridFolder.open();
-    this.scene.add( gridHelper );
-    this.addLight()
-    // this.addCube()
-    this.createBeam()
-    // this.createTempLines()
   }
 
   private onResize = () => 
+
   {
-    this.camera.aspect = window.innerWidth / window.innerHeight
-    this.camera.updateProjectionMatrix()
+    this.camera.handleResize()
     this.renderer.setSize(window.innerWidth, window.innerHeight)
     this.gizmo.update()
   }
+
   private update = () => {
-    this.camera.updateProjectionMatrix();
-    this.renderer.render(this.scene, this.camera);
-    this.cameraControls.update()
+    this.camera.cam.updateProjectionMatrix();
+    this.renderer.render(this.scene, this.camera.cam);
+    this.camera.controls.update()
     requestAnimationFrame(this.update);
     this.gizmo?.render()
   }
+
   public dispose = () => {
     function removeObjWithChildren(obj : any) {
       if (obj.children.length > 0) {
@@ -150,23 +152,6 @@ export class Model {
     this.removeListeners()
     this.removeGui()
   }
-  public addLight= () => {
-    const ambientLight = new THREE.AmbientLight(0xE6E7E4, 1)
-    const directionalLight = new THREE.DirectionalLight(0xF9F9F9, 1)
-    directionalLight.position.set(10, 50, 10)
-    this.scene.add(ambientLight, directionalLight)
-
-    // Add some lights
-    // const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.0);
-    // this.scene.add(hemiLight);
-
-    // const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
-    // dirLight.position.set(5, 10, 5);
-    // this.scene.add(dirLight);
-
-    // const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
-    // this.scene.add(ambientLight);
-  } 
   public removeListeners = () => { 
     window.removeEventListener('resize', this.onResize)
     window.removeEventListener('pointermove', this.updatePointerCoords)
@@ -179,8 +164,8 @@ export class Model {
     this.pointerCoords.x = mouseLoc.x;
     this.pointerCoords.y = mouseLoc.y;
 
-    if(this.snapManager.enabled){
-      this.snapManager.updatePosition()
+    if(this.snapper.enabled){
+      this.snapper.updatePosition()
     }
   }
 
@@ -224,13 +209,19 @@ export class Model {
     );
     
     // Create a material that supports vertex colors for the heat map
-    const beamMaterial = new THREE.MeshStandardMaterial({ 
-      // vertexColors: true,
-      roughness: 0.9,
-      metalness: 0.0
+    // const beamMaterial = new THREE.MeshStandardMaterial({ 
+    //   vertexColors: true,
+    //   roughness: 0.9,
+    //   metalness: 0.0
+    // });
+
+    const beamMaterial = new THREE.MeshBasicMaterial({ 
+      vertexColors: true
+      
     });
     
     const beamMesh = new THREE.Mesh(beamGeometry, beamMaterial);
+    beamMesh.layers.set(this.layer)
     this.scene.add(beamMesh);
     
     // Position the beam so that it goes from z=0 to z=5, with the midpoint at 2.5
@@ -294,32 +285,43 @@ export class Model {
     const minDisplacement = Math.min(...displacements);
     const maxDisplacement = Math.max(...displacements);
     const displacementRange = maxDisplacement - minDisplacement || 1;
+
+    console.log("minDisplacement:", minDisplacement, "maxDisplacement:", maxDisplacement);
     
-    for (let i = 0; i < vertexCount; i++) {
-      const disp = displacements[i];
-      const t = (disp - minDisplacement) / displacementRange; // normalized [0,1]
+    // for (let i = 0; i < vertexCount; i++) {
+    //   const disp = displacements[i];
+    //   console.log("disp: ", disp);
+    //   const t = (disp - minDisplacement) / displacementRange; // normalized [0,1]
     
-      // Simple color map: blue at low displacement, red at high displacement
-      // t=0 -> blue (0,0,1)
-      // t=1 -> red (1,0,0)
-      const r = t;
-      const g = 0.0;
-      const b = 1.0 - t;
-      
-      colors[i * 3 + 0] = r;
-      colors[i * 3 + 1] = g;
-      colors[i * 3 + 2] = b;
-    }
-    beamGeometry.attributes.color.needsUpdate = true;
+    //   const r = t;
+    //   const g = 0.0;
+    //   const b = 1.0 - t;
+    //   colors[i * 3 + 0] = r;
+    //   colors[i * 3 + 1] = g;
+    //   colors[i * 3 + 2] = b;
+    // }
+    // beamGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    // beamGeometry.attributes.color.needsUpdate = true;
 
   }
 
-  addCube(){
-    const geometry = new THREE.BoxGeometry(1, 1, 1);
-    const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
-    const cube = new THREE.Mesh(geometry, material);
-    this.scene.add(cube);
+  handleLevelChange(level: Level) {
+    if(this.camera.viewMode === '3d') {
+      this.camera.handle2dView()
+      this.gridHelper.show()
+    }
+    const elevation = level.value
+    this.worldPlane.constant = -elevation
+    this.gridHelper.grid.position.y = elevation -0.005
+    this.layer = this.levels.items.findIndex(l => l.value === level.value)
+    this.snapper.snap?.layers.set(this.layer)
+    this.gridHelper.grid.layers.set(this.layer)
+    this.axes.setLayer(this.layer)
+    this.camera.cam.layers.set(this.layer)
+    this.light.object.layers.set(this.layer)
+
   }
 }
+
 
 export default Model

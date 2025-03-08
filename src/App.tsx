@@ -1,8 +1,9 @@
 
 import './App.css'
+import CssBaseline from '@mui/material/CssBaseline';
 import Viewer from './pages/viewer'
 import { ThemeProvider, createTheme } from '@mui/material/styles';
-import CssBaseline from '@mui/material/CssBaseline';
+
 
 const darkTheme = createTheme({
   palette: {

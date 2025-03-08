@@ -36,9 +36,17 @@ class Selector  {
   onHover(){ 
     if(this.enableHover){
       const pointer = new THREE.Vector2(this.model.pointerCoords.x, this.model.pointerCoords.y)
-      this.rayCaster.setFromCamera(pointer, this.model.camera)
+      this.rayCaster.setFromCamera(pointer, this.model.camera.cam)
+      if(this.model.camera.viewMode == '2d'){
+        // console.log('2d view')
+        this.rayCaster.layers.enable(this.model.layer)
+      }
+      else{
+        this.rayCaster.layers.enableAll()
+      }
       const meshesArray = [] as THREE.Mesh[]
       this.model.scene.children.forEach(element => this.getMeshes(element, meshesArray))
+      // console.log('meshesArray', meshesArray)
       // https://github.com/ThatOpen/engine_components/blob/main/packages/front/src/fragments/Highlighter/index.ts
       const intersects = this.rayCaster.intersectObjects( meshesArray, false)
       let materialOnHover = null
@@ -84,10 +92,11 @@ class Selector  {
 
   onClick(){
     if(this.enableClick){
-      const pointer = new THREE.Vector2(this.model.pointerCoords.x, this.model.pointerCoords.y)
-      this.rayCaster.setFromCamera(pointer, this.model.camera)
+        const pointer = new THREE.Vector2(this.model.pointerCoords.x, this.model.pointerCoords.y)
+      this.rayCaster.setFromCamera(pointer, this.model.camera.cam)
       const meshesArray = [] as THREE.Mesh[]
       // this.model.scene.children.forEach(element => this.getMeshes(element, meshesArray))
+
       this.model.scene.children.forEach(element => this.getMeshes(element, meshesArray))
       const intersects = this.rayCaster.intersectObjects( meshesArray, false)
       

@@ -3,7 +3,7 @@ import { Model } from "../../model/Model";
 import NavBar from "../../components/NavBar/NavBar";
 import { ModelContext } from "../../model/Context";
 import Elements from "../../components/Elements/Elements";
-
+import LevelSelector from "../../components/Levels/Components/Selector";
 const Viewer = () => {
   const containerRef = useRef<HTMLDivElement | null>(null);  
   const modelRef = useRef<Model | null>(null)

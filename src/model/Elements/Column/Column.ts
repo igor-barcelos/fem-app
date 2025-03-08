@@ -1,15 +1,13 @@
 import { Model } from "../../Model";
 import * as THREE from 'three'
 import Node from "../Node/Node";
-// import { v4 as uuidv4 } from 'uuid';
-
-class Beam {
+class Column {
   model: Model
   id: number
   nodes: Node[]
   label: string
   index: number
-  mesh: THREE.Mesh
+  mesh: THREE.Mesh | null
   constructor(model: Model, label: string, nodes: Node[]){
     this.model = model
     this.id = (Date.now() % 0x80000000)
@@ -17,24 +15,21 @@ class Beam {
     this.label = label
     this.index = 0
     this.init()
-    this.mesh = new THREE.Mesh(new THREE.BoxGeometry(0, 0, 0), new THREE.MeshStandardMaterial({ color: 0x888888 }))
+    this.mesh = null
   }
 
   init = () => {
-    const lastBeam = this.model.beams[this.model.beams.length - 1]
-    if(lastBeam) {
-      this.index = lastBeam.index + 1
-      this.label = `Beam ${this.index}`
+    const lastColumn = this.model.columns[this.model.columns.length - 1]
+    if(lastColumn) {
+      this.index = lastColumn.index + 1
+      this.label = `Column ${this.index}`
     }
     else {
       this.index = 1
-      this.label = `Beam ${this.index}`
+      this.label = `Column ${this.index}`
     }
   }
 
-  startDrawMode = () => {
-    this.model.drawTool.start('Beam')
-  }
 
   create = () => {
     
@@ -44,7 +39,7 @@ class Beam {
     console.log('START', start)
     console.log('END', end)
 
-    // Compute direction and length
+    // // Compute direction and length
     const direction = new THREE.Vector3().subVectors(end, start);
     const length = direction.length();
 
@@ -64,7 +59,7 @@ class Beam {
     // Normalize direction for orientation
     direction.normalize();
 
-    // Align beam’s +X axis with the direction vector
+    // Align column’s +X axis with the direction vector
     const xAxis = new THREE.Vector3(1, 0, 0);
     this.mesh.quaternion.setFromUnitVectors(xAxis, direction);
 
@@ -77,4 +72,4 @@ class Beam {
 
 } 
 
-export default Beam
+export default Column

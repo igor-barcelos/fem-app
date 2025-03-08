@@ -1,16 +1,21 @@
 import { Model } from '../Model';
 import { Line } from './Tools/Line';
 import { Tool } from './types';
+import Beam from '../Elements/Beam/Beam'
 
 export default class DrawTool{
   enabled = true;
   state: number;
   model : Model
   activeTool : Tool | null = null
+  handleBeamDraw: (beam: Beam, toolState: number) => void;
+  handleColumnDraw: () => void;
   constructor(model : Model) { 
     this.model = model
     this.state = 0; //state from 0 to 3
     this.setupEvents(true)
+    this.handleBeamDraw = () => {}
+    this.handleColumnDraw = () => {}
   }
 
   private onKeyDown = (e: KeyboardEvent) => {

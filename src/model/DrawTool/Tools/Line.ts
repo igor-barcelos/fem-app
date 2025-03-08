@@ -5,8 +5,14 @@ import { LineGeometry } from 'three/examples/jsm/lines/LineGeometry.js';
 import { Line2 } from 'three/examples/jsm/lines/Line2.js';
 import { LineMaterial } from 'three/examples/jsm/lines/LineMaterial.js';
 import Beam from '../../Elements/Beam/Beam';
-
+import Node from '../../Elements/Node/Node';
+import Column from '../../Elements/Column/Column';
 // type LineType = 'Axis' | 'Beam' | 'Column';
+const mockLevels = [
+  { value: 0, label: 'Level 1' },
+  { value: 3, label: 'Level 2' },
+  { value: 6, label: 'Level 3' },
+];
 
 export class Line implements Tool {
   lineMode: number;
@@ -16,6 +22,9 @@ export class Line implements Tool {
   currentPointerCoord : THREE.Vector3;
   onOrthoMode : boolean;
   type : String;
+  startNode: Node
+  endNode: Node
+  snappedNode : Node | null
   constructor(model : Model) 
   {
     this.model = model
@@ -25,6 +34,9 @@ export class Line implements Tool {
     this.currentPointerCoord = new THREE.Vector3();
     this.onOrthoMode = true;
     this.type = 'Beam';
+    this.startNode = new Node(this.model, new THREE.Vector3())
+    this.endNode = new Node(this.model, new THREE.Vector3())
+    this.snappedNode = null
   }
 
   start = (type: String) => {
@@ -35,7 +47,7 @@ export class Line implements Tool {
   };
 
   private _onMouseMove = (e: MouseEvent) => {
-    const mouseLoc = this.getMouseLocation(e,this.model.canvas, this.model.worldPlane, this.model.camera);
+    const mouseLoc = this.getMouseLocation(e,this.model.canvas, this.model.worldPlane, this.model.camera.cam);
     this.currentPointerCoord = mouseLoc;
     if (this.model.drawTool.state === 1) {
       this.currentPointerCoord = mouseLoc;
@@ -50,9 +62,30 @@ export class Line implements Tool {
     //ON FIRST CLICK
     if (this.model.drawTool.state === 1) {
       let tempPointerCoord = this.currentPointerCoord
-      if(this.model.snapManager.enabled)
+      if(this.model.snapper.enabled)
       {
-        tempPointerCoord = this.model.snapManager.snappedCoords!
+        this.snappedNode = this.model.snapper.snappedNode
+        tempPointerCoord = this.model.snapper.snappedCoords!
+
+        if(this.type === 'Column' && this.snappedNode){
+          const topNode = this.snappedNode
+          const currentLayer = this.model.layer
+          const currentLevel = mockLevels[currentLayer].value
+          const lowerLevel = mockLevels[currentLayer - 1].value
+          let bottomNode = this.model.nodes.find(node => node.y === lowerLevel && node.x === topNode.x && node.z === topNode.z)
+
+          console.log('BOTTOM NODE', bottomNode)
+
+          
+            if(!bottomNode) 
+              bottomNode = new Node(this.model, new THREE.Vector3(topNode.x, lowerLevel, topNode.z))
+            
+            const newColumn = new Column(this.model, 'Column', [topNode, bottomNode])
+            newColumn.create()
+            this.model.nodes.push(bottomNode)
+            this.model.columns.push(newColumn)
+            return
+        }
       }      
       const   tempLinePoints =  Array(2).fill(tempPointerCoord); 
       this.initTempLine(tempLinePoints)
@@ -116,6 +149,7 @@ export class Line implements Tool {
   	// line.computeLineDistances();
 		this.model.scene.add(line)
     this.currentTempLine = line
+    line.layers.enableAll()
     // this.tagsManager.init(this.currentTempLine)
     // this.tagsManager.initContainers()
 
@@ -124,9 +158,9 @@ export class Line implements Tool {
   updTempLine(pointerCoords: THREE.Vector3)
   {
     
-    if(this.model.snapManager.enabled)
+    if(this.model.snapper.enabled)
     {
-      const snappedCoords = this.model.snapManager.snappedCoords!
+      const snappedCoords = this.model.snapper.snappedCoords!
       pointerCoords = snappedCoords
     }
     const linePoints = this.currentTempLine.geometry.attributes.position.array
@@ -199,8 +233,8 @@ export class Line implements Tool {
     // const lineLength = getLineLength(line)
     // const meanPoint = getLineMeanPoint(line)
 
-      // const boxGeometry = new THREE.BoxGeometry( 0.5, lineLength, 0.5 ); 
-      // const boxMaterial = new THREE.MeshStandardMaterial( {  color: 0xc3c3c3, wireframe: false,} ); 
+    // const boxGeometry = new THREE.BoxGeometry( 0.5, lineLength, 0.5 ); 
+    // const boxMaterial = new THREE.MeshStandardMaterial( {  color: 0xc3c3c3, wireframe: false,} ); 
     // const cube = new THREE.Mesh( boxGeometry, boxMaterial );
     
     // cube.castShadow = true;
@@ -218,8 +252,46 @@ export class Line implements Tool {
         this.model.axes.draw(points)
         break;
       case 'Beam':
-        const beam = new Beam(this.model)
-        beam.create(points)
+
+    
+        if(toolState === 2) {
+          console.log('POINT 1', points[0], points[1], points[2])
+          console.log('POINT 2', points[3], points[4], points[5])
+          const nodei = this.snappedNode ? this.snappedNode : new Node(this.model, new THREE.Vector3(points[0], points[1], points[2]))
+          const nodej = new Node(this.model, new THREE.Vector3(points[3], points[4], points[5]))
+          nodej.id = nodei.id - 1 
+
+
+          const nodes = [nodei, nodej]
+          if(!this.snappedNode)
+          {
+            this.model.nodes.push(nodei)
+          }
+          this.model.nodes.push(nodej)
+          
+          const beam = new Beam(this.model, 'Beam', nodes)
+          beam.create()
+          this.model.beams.push(beam)
+          this.model.drawTool.handleBeamDraw(beam, toolState)
+        }
+        else if(toolState === 3) {
+          const currentNodes = this.model.nodes
+          const previousNode = this.model.nodes[this.model.nodes.length - 1]
+          const nodei = previousNode
+          const snappedNode = this.model.snapper.snappedNode
+          const nodej = snappedNode ? snappedNode : new Node(this.model, new THREE.Vector3(points[3], points[4], points[5]))
+          const nodes = [nodei, nodej]
+          const beam = new Beam(this.model, 'Beam', nodes)
+          beam.create()
+          this.model.beams.push(beam)
+          console.log('NODES', this.model.nodes)
+
+          if (!snappedNode)  
+            this.model.nodes = [...currentNodes, nodej]
+
+          console.log('NODES', this.model.nodes)
+          this.model.drawTool.handleBeamDraw(beam, toolState)
+        }
         break;
       default:
         this.model.scene.add(line)
