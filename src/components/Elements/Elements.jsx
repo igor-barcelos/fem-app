@@ -88,6 +88,7 @@ const Elements = () => {
         members: members
     }
 
+    console.log('DATA', data)
     const res = await axios.post('http://localhost:8000/analysis', data)
     console.log('RUNNING ANALYSIS', res)
     } catch (error) {

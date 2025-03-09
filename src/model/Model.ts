@@ -97,6 +97,8 @@ export class Model {
     const texture = new THREE.CanvasTexture(canvas);
     this.scene.background = texture;
     this.axes.setMockAxes()
+    this.createMockElements()
+    this.camera.handle3dView()
   }
 
   init()
@@ -320,6 +322,43 @@ export class Model {
     this.camera.cam.layers.set(this.layer)
     this.light.object.layers.set(this.layer)
 
+  }
+  createMockElements() {
+
+
+    const dir = new THREE.Vector3( 0, -1, 0 );
+
+    //normalize the direction vector (convert to vector of length 1)
+    dir.normalize();
+
+    const beamLength = 3
+    for(let i = 0; i < 10; i++) {
+
+      const origin = new THREE.Vector3( (beamLength /10) * i, 4.5, 0 );
+      const length = 1;
+      const hex = 0xff0000;
+
+      const arrowHelper = new THREE.ArrowHelper( dir, origin, length, hex );
+      this.scene.add( arrowHelper );
+    }
+    const  node1 = new Node(this, new THREE.Vector3(0,3,0))
+    const  node2 = new Node(this, new THREE.Vector3(beamLength,3,0))
+
+    const  node3 = new Node(this, new THREE.Vector3(0,0,0))
+    const  node4 = new Node(this, new THREE.Vector3(3,0,0))
+
+    
+    this.nodes.push(node1, node2, node3, node4)
+
+    const beam = new Beam(this, 'Beam 1', [node1, node2])
+    const column1 = new Column(this, 'Column 1', [node1, node3])
+    const column2 = new Column(this, 'Column 2', [node2, node4])
+
+    beam.create()
+    column1.create()
+    column2.create()
+    this.beams.push(beam)
+    this.columns.push(column1, column2)
   }
 }
 
